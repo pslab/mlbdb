@@ -1,0 +1,39 @@
+ocamlc -i funs.ml > funs.mli
+ocamlc -c funs.mli
+ocamlc -c funs.ml
+ocamlc -c wrap.c
+ocamlmklib  -o  wrap_stubs  wrap.o
+ocamlc -a  -custom  -o funs.cma  funs.cmo  -dllib dllwrap_stubs.so
+
+wrap.o: wrap.c
+        ocamlc -c $<
+
+dllwrap_stubs.so: wrap.o
+        ocamlmklib  -o  wrap_stubs  $<
+
+funs.mli: funs.ml
+        ocamlc -i $< > $@
+
+funs.cmi: funs.mli
+        ocamlc -c $<
+
+funs.cmo: funs.ml funs.cmi
+        ocamlc -c $<
+
+funs.cma:  funs.cmo  dllwrap_stubs.so
+        ocamlc -a  -o $@  $<  -dllib -lwrap_stubs
+
+funs.cmx: funs.ml funs.cmi
+        ocamlopt -c $<
+
+funs.cmxa:  funs.cmx  dllwrap_stubs.so
+        ocamlopt -a  -o $@  $<  -cclib -lwrap_stubs
+
+clean:
+        rm -f *.[oa] *.so *.cm[ixoa] *.cmxa
+
+
+make wrap.o
+make funs.cmx
+ocamlopt wrap.o funs.cmx -o myapp
+./myapp
